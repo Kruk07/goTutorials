@@ -33,15 +33,11 @@ func (job *TaxIncludedPriceJob) LoadData() error {
 	return nil
 }
 
-func (job *TaxIncludedPriceJob) Process(doneChan chan bool, errorChan chan error) {
+func (job *TaxIncludedPriceJob) Process() error {
 	err := job.LoadData()
 
-	// errorChan <- errors.New("An Error!")
-
 	if err != nil {
-		// return err
-		errorChan <- err
-		return
+		return err
 	}
 	result := make(map[string]string)
 	for _, price := range job.InputPrices {
@@ -50,8 +46,7 @@ func (job *TaxIncludedPriceJob) Process(doneChan chan bool, errorChan chan error
 	}
 	job.TaxIncludedPrices = result
 
-	job.IOManager.WriteResult(job)
-	doneChan <- true
+	return job.IOManager.WriteResult(job)
 }
 
 func NewTaxIncludedPriceJob(iom iomanager.IOManager, taxRate float64) *TaxIncludedPriceJob {
