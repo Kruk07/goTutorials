@@ -1,17 +1,16 @@
-package test
+package repository
 
 import (
 	"testing"
 
 	"example.com/go_basics/go/db"
-	"example.com/go_basics/go/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateMovieAndCharacter(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	movie := repo.CreateMovie("Shrek", 2001)
 	character := repo.CreateCharacter("Shrek")
@@ -25,7 +24,7 @@ func TestCreateMovieAndCharacter(t *testing.T) {
 
 func TestAddAppearanceAndGetCharactersByMovie(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	movie := repo.CreateMovie("Shrek 2", 2004)
 	character := repo.CreateCharacter("Donkey")
@@ -39,7 +38,7 @@ func TestAddAppearanceAndGetCharactersByMovie(t *testing.T) {
 
 func TestGetMoviesByCharacter(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	m1 := repo.CreateMovie("Shrek", 2001)
 	m2 := repo.CreateMovie("Shrek 2", 2004)
@@ -56,7 +55,7 @@ func TestGetMoviesByCharacter(t *testing.T) {
 
 func TestGetCharactersByMovieTitle(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	m := repo.CreateMovie("The Lion King", 1994)
 	c := repo.CreateCharacter("Simba")
@@ -73,7 +72,7 @@ func TestGetCharactersByMovieTitle(t *testing.T) {
 
 func TestGetMovieTitlesByCharacterName(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	m1 := repo.CreateMovie("Shrek", 2001)
 	m2 := repo.CreateMovie("Shrek 2", 2004)
@@ -93,7 +92,7 @@ func TestGetMovieTitlesByCharacterName(t *testing.T) {
 
 func TestListAllMoviesAndCharacters(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	repo.CreateMovie("Shrek", 2001)
 	repo.CreateMovie("Shrek 2", 2004)
@@ -112,7 +111,7 @@ func TestListAllMoviesAndCharacters(t *testing.T) {
 
 func TestUpdateCharacter(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	char := repo.CreateCharacter("Donkey")
 	updated := repo.UpdateCharacter(char.ID, "Donkey the Brave")
@@ -127,7 +126,7 @@ func TestUpdateCharacter(t *testing.T) {
 
 func TestDeleteMovie(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	movie := repo.CreateMovie("Shrek Forever After", 2010)
 	char := repo.CreateCharacter("Rumpelstiltskin")
@@ -148,7 +147,7 @@ func TestDeleteMovie(t *testing.T) {
 
 func TestDeleteCharacter(t *testing.T) {
 	mem := db.New()
-	repo := repository.New(mem)
+	repo := New(mem)
 
 	movie := repo.CreateMovie("The Lion King", 1994)
 	char := repo.CreateCharacter("Scar")

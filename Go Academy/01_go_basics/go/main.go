@@ -49,7 +49,7 @@ func main() {
 
 	repo.DeleteMovie(shrek2.ID)
 
-	log.Println("📦 Final state after update and delete:")
+	log.Println("Final state after update and delete:")
 	repo.ListAllMovies()
 	repo.ListAllCharacters()
 }

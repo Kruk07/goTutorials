@@ -17,7 +17,10 @@ func New(db *db.MemoryDB) *Repository {
 }
 
 func (r *Repository) CreateMovie(title string, year int) entity.Movie {
-	movie := entity.NewMovie(title, year)
+	movie := entity.NewMovie(
+		entity.WithTitle(title),
+		entity.WithYear(year),
+	)
 
 	r.DB.Movies[movie.ID] = movie
 	log.Printf("Movie added: %s (%d) [ID: %s]", title, year, movie.ID)
@@ -25,14 +28,14 @@ func (r *Repository) CreateMovie(title string, year int) entity.Movie {
 }
 
 func (r *Repository) CreateCharacter(name string) entity.Character {
-	character := entity.NewCharacter(name)
+	character := entity.NewCharacter(entity.WithName(name))
 	r.DB.Characters[character.ID] = character
 	log.Printf("Character added: %s [ID: %s]", name, character.ID)
 	return character
 }
 
 func (r *Repository) AddAppearance(movieID, characterID uuid.UUID) {
-	r.DB.Appearances = append(r.DB.Appearances, entity.New(movieID, characterID))
+	r.DB.Appearances = append(r.DB.Appearances, entity.New(entity.WithMovieId(movieID), entity.WithCharacterId(characterID)))
 
 	movie, _ := r.DB.Movies[movieID]
 	character, _ := r.DB.Characters[characterID]
