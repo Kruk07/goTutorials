@@ -96,26 +96,28 @@ func (r *Repository) GetMovieTitlesByCharacterName(name string) []string {
 	return []string{}
 }
 
-func (r *Repository) ListAllMovies() {
+func (r *Repository) ListAllMovies() map[uuid.UUID]entity.Movie {
 	if len(r.DB.Movies) == 0 {
 		log.Println("No movies found in the database.")
-		return
+		return nil
 	}
 	log.Println("All movies:")
 	for _, m := range r.DB.Movies {
 		log.Printf("- %s (%d) [ID: %s]", m.Title, m.Year, m.ID)
 	}
+	return r.DB.Movies
 }
 
-func (r *Repository) ListAllCharacters() {
+func (r *Repository) ListAllCharacters() map[uuid.UUID]entity.Character {
 	if len(r.DB.Characters) == 0 {
 		log.Println("No characters found in the database.")
-		return
+		return nil
 	}
 	log.Println("All characters:")
 	for _, c := range r.DB.Characters {
 		log.Printf("- %s [ID: %s]", c.Name, c.ID)
 	}
+	return r.DB.Characters
 }
 
 func (r *Repository) UpdateCharacter(id uuid.UUID, newName string) bool {
