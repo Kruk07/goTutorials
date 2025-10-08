@@ -1,0 +1,1 @@
+DELETE http://localhost:8080/movies/delete?id=4dc08da8-b4b1-46a6-b77f-f899f5bfcd60

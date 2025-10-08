@@ -1,0 +1,7 @@
+POST http://localhost:8080/movies
+Content-Type: application/json
+
+{
+  "title": "Shrek Forever After",
+  "year": 2010
+}

@@ -1,0 +1,1 @@
+DELETE http://localhost:8080/characters/delete?id=e7b8c1f2-9a3d-4a4f-8f2e-123456789abc

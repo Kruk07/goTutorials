@@ -1,55 +1,51 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
+	"net"
+	"net/http"
+
+	"go.uber.org/fx"
 
 	"example.com/go_basics/go/db"
+	"example.com/go_basics/go/handlers"
 	"example.com/go_basics/go/repository"
+	"example.com/go_basics/go/routes"
+	"example.com/go_basics/go/testdata"
 )
 
 func main() {
-	mem := db.New()
-	repo := repository.New(mem)
+	app := fx.New(
+		fx.Provide(
+			db.New,
+			repository.New,
+			handlers.New,
+			routes.NewServeMux,
+		),
+		fx.Invoke(
+			NewHTTPServer,
+			testdata.LoadTestData,
+		),
+	)
+	app.Run()
+}
 
-	shrek := repo.CreateMovie("Shrek", 2001)
-	shrek2 := repo.CreateMovie("Shrek 2", 2004)
-	lionKing := repo.CreateMovie("The Lion King", 1994)
-
-	shrekChar := repo.CreateCharacter("Shrek")
-	donkey := repo.CreateCharacter("Donkey")
-	fiona := repo.CreateCharacter("Fiona")
-	simba := repo.CreateCharacter("Simba")
-	pumbaa := repo.CreateCharacter("Pumbaa")
-
-	repo.AddAppearance(shrek.ID, shrekChar.ID)
-	repo.AddAppearance(shrek.ID, donkey.ID)
-	repo.AddAppearance(shrek.ID, fiona.ID)
-
-	repo.AddAppearance(shrek2.ID, shrekChar.ID)
-	repo.AddAppearance(shrek2.ID, donkey.ID)
-	repo.AddAppearance(shrek2.ID, fiona.ID)
-
-	repo.AddAppearance(lionKing.ID, simba.ID)
-	repo.AddAppearance(lionKing.ID, pumbaa.ID)
-
-	repo.ListAllMovies()
-	repo.ListAllCharacters()
-
-	log.Println("Characters in 'Shrek':")
-	for _, c := range repo.GetCharactersByMovieTitle("Shrek") {
-		log.Printf("- %s", c.Name)
-	}
-
-	log.Println("Movies featuring 'Donkey':")
-	for _, title := range repo.GetMovieTitlesByCharacterName("Donkey") {
-		log.Printf("- %s", title)
-	}
-
-	repo.UpdateCharacter(donkey.ID, "Donkey the Brave")
-
-	repo.DeleteMovie(shrek2.ID)
-
-	log.Println("Final state after update and delete:")
-	repo.ListAllMovies()
-	repo.ListAllCharacters()
+func NewHTTPServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
+	srv := &http.Server{Addr: ":8080", Handler: mux}
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			ln, err := net.Listen("tcp", srv.Addr)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Starting HTTP server at", srv.Addr)
+			go srv.Serve(ln)
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return srv.Shutdown(ctx)
+		},
+	})
+	return srv
 }
