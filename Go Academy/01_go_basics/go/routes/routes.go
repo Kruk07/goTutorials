@@ -8,15 +8,38 @@ import (
 
 func NewServeMux(h *handlers.Handlers) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/movies", h.CreateMovie)
-	mux.HandleFunc("/characters", h.CreateCharacter)
-	mux.HandleFunc("/appearance", h.AddAppearance)
-	mux.HandleFunc("/movies/list", h.ListAllMovies)
-	mux.HandleFunc("/characters/list", h.ListAllCharacters)
+
+	mux.HandleFunc("/movies", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			h.CreateMovie(w, r)
+		case http.MethodGet:
+			h.ListAllMovies(w, r)
+		case http.MethodDelete:
+			h.DeleteMovie(w, r)
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/characters", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			h.CreateCharacter(w, r)
+		case http.MethodGet:
+			h.ListAllCharacters(w, r)
+		case http.MethodPut:
+			h.UpdateCharacter(w, r)
+		case http.MethodDelete:
+			h.DeleteCharacter(w, r)
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/appearances", h.AddAppearance)
 	mux.HandleFunc("/characters/by-movie", h.GetCharactersByMovieTitle)
 	mux.HandleFunc("/movies/by-character", h.GetMovieTitlesByCharacterName)
-	mux.HandleFunc("/characters/update", h.UpdateCharacter)
-	mux.HandleFunc("/movies/delete", h.DeleteMovie)
-	mux.HandleFunc("/characters/delete", h.DeleteCharacter)
+
 	return mux
 }
