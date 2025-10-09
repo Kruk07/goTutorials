@@ -25,7 +25,11 @@ func (h *Handlers) CreateMovie(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	movie := h.Repo.CreateMovie(input.Title, input.Year)
+	movie, err := h.Repo.CreateMovie(input.Title, input.Year)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	json.NewEncoder(w).Encode(movie)
 }
 
@@ -37,7 +41,11 @@ func (h *Handlers) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	char := h.Repo.CreateCharacter(input.Name)
+	char, err := h.Repo.CreateCharacter(input.Name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	json.NewEncoder(w).Encode(char)
 }
 
@@ -50,17 +58,28 @@ func (h *Handlers) AddAppearance(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	h.Repo.AddAppearance(input.MovieID, input.CharacterID)
+	if err := h.Repo.AddAppearance(input.MovieID, input.CharacterID); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handlers) ListAllMovies(w http.ResponseWriter, r *http.Request) {
-	movies := h.Repo.ListAllMovies()
+	movies, err := h.Repo.ListAllMovies()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	json.NewEncoder(w).Encode(movies)
 }
 
 func (h *Handlers) ListAllCharacters(w http.ResponseWriter, r *http.Request) {
-	chars := h.Repo.ListAllCharacters()
+	chars, err := h.Repo.ListAllCharacters()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	json.NewEncoder(w).Encode(chars)
 }
 
@@ -70,7 +89,11 @@ func (h *Handlers) GetCharactersByMovieTitle(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "Missing title", http.StatusBadRequest)
 		return
 	}
-	chars := h.Repo.GetCharactersByMovieTitle(title)
+	chars, err := h.Repo.GetCharactersByMovieTitle(title)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	json.NewEncoder(w).Encode(chars)
 }
 
@@ -80,7 +103,11 @@ func (h *Handlers) GetMovieTitlesByCharacterName(w http.ResponseWriter, r *http.
 		http.Error(w, "Missing name", http.StatusBadRequest)
 		return
 	}
-	titles := h.Repo.GetMovieTitlesByCharacterName(name)
+	titles, err := h.Repo.GetMovieTitlesByCharacterName(name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	json.NewEncoder(w).Encode(titles)
 }
 
@@ -93,7 +120,10 @@ func (h *Handlers) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-	h.Repo.UpdateCharacter(input.ID, input.Name)
+	if err := h.Repo.UpdateCharacter(input.ID, input.Name); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -103,14 +133,15 @@ func (h *Handlers) DeleteMovie(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing id", http.StatusBadRequest)
 		return
 	}
-
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		http.Error(w, "Invalid UUID format", http.StatusBadRequest)
 		return
 	}
-
-	h.Repo.DeleteMovie(id)
+	if err := h.Repo.DeleteMovie(id); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -120,13 +151,14 @@ func (h *Handlers) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Missing id", http.StatusBadRequest)
 		return
 	}
-
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		http.Error(w, "Invalid UUID format", http.StatusBadRequest)
 		return
 	}
-
-	h.Repo.DeleteCharacter(id)
+	if err := h.Repo.DeleteCharacter(id); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
