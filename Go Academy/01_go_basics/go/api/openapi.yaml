@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: Movie Character API
+  version: 1.0.0
+paths:
+  /movies:
+    get:
+      summary: List all movies
+      responses:
+        '200':
+          description: A list of movies
+    post:
+      summary: Create a new movie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+      responses:
+        '201':
+          description: Movie created
+    delete:
+      summary: Delete a movie
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Movie deleted
+
+  /characters:
+    get:
+      summary: List all characters
+      responses:
+        '200':
+          description: A list of characters
+    post:
+      summary: Create a new character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Character'
+      responses:
+        '201':
+          description: Character created
+    put:
+      summary: Update a character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Character'
+      responses:
+        '200':
+          description: Character updated
+    delete:
+      summary: Delete a character
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Character deleted
+
+  /appearances:
+    post:
+      summary: Add a character appearance in a movie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appearance'
+      responses:
+        '201':
+          description: Appearance added
+
+  /characters/by-movie:
+    get:
+      summary: Get characters by movie title
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Characters returned
+
+  /movies/by-character:
+    get:
+      summary: Get movies by character name
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Movies returned
+
+components:
+  schemas:
+    Movie:
+      type: object
+      required: [title, release_year]
+      properties:
+        title:
+          type: string
+        release_year:
+          type: integer
+    Character:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    Appearance:
+      type: object
+      required: [character_id, movie_id]
+      properties:
+        character_id:
+          type: string
+        movie_id:
+          type: string
