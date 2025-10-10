@@ -12,82 +12,104 @@ func TestCreateMovieAndCharacter(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	movie := repo.CreateMovie("Shrek", 2001)
-	character := repo.CreateCharacter("Shrek")
+	movie, err := repo.CreateMovie("Shrek", 2001)
+	assert.NoError(t, err)
+	character, err := repo.CreateCharacter("Shrek")
+	assert.NoError(t, err)
 
 	assert.Equal(t, "Shrek", movie.Title)
 	assert.Equal(t, 2001, movie.Year)
 	assert.Equal(t, "Shrek", character.Name)
 	assert.NotEmpty(t, movie.ID)
 	assert.NotEmpty(t, character.ID)
+
+	_, err = repo.CreateMovie("", 2001)
+	assert.Error(t, err)
+
+	_, err = repo.CreateCharacter("")
+	assert.Error(t, err)
 }
 
 func TestAddAppearanceAndGetCharactersByMovie(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	movie := repo.CreateMovie("Shrek 2", 2004)
-	character := repo.CreateCharacter("Donkey")
+	movie, _ := repo.CreateMovie("Shrek 2", 2004)
+	character, _ := repo.CreateCharacter("Donkey")
 
-	repo.AddAppearance(movie.ID, character.ID)
+	err := repo.AddAppearance(movie.ID, character.ID)
+	assert.NoError(t, err)
 
-	chars := repo.GetCharactersByMovie(movie.ID)
+	chars, err := repo.GetCharactersByMovie(movie.ID)
+	assert.NoError(t, err)
 	assert.Len(t, chars, 1)
 	assert.Equal(t, "Donkey", chars[0].Name)
+
+	fakeID := uuid.New()
+	err = repo.AddAppearance(fakeID, character.ID)
+	assert.Error(t, err)
+
+	_, err = repo.GetCharactersByMovie(fakeID)
+	assert.Error(t, err)
 }
 
 func TestGetMoviesByCharacter(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	m1 := repo.CreateMovie("Shrek", 2001)
-	m2 := repo.CreateMovie("Shrek 2", 2004)
-	c := repo.CreateCharacter("Fiona")
+	m1, _ := repo.CreateMovie("Shrek", 2001)
+	m2, _ := repo.CreateMovie("Shrek 2", 2004)
+	c, _ := repo.CreateCharacter("Fiona")
 
 	repo.AddAppearance(m1.ID, c.ID)
 	repo.AddAppearance(m2.ID, c.ID)
 
-	movies := repo.GetMoviesByCharacter(c.ID)
+	movies, err := repo.GetMoviesByCharacter(c.ID)
+	assert.NoError(t, err)
 	assert.Len(t, movies, 2)
 	assert.Contains(t, []string{movies[0].Title, movies[1].Title}, "Shrek")
 	assert.Contains(t, []string{movies[0].Title, movies[1].Title}, "Shrek 2")
+
+	_, err = repo.GetMoviesByCharacter(uuid.New())
+	assert.Error(t, err)
 }
 
 func TestGetCharactersByMovieTitle(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	m := repo.CreateMovie("The Lion King", 1994)
-	c := repo.CreateCharacter("Simba")
-
+	m, _ := repo.CreateMovie("The Lion King", 1994)
+	c, _ := repo.CreateCharacter("Simba")
 	repo.AddAppearance(m.ID, c.ID)
 
-	chars := repo.GetCharactersByMovieTitle("The Lion King")
+	chars, err := repo.GetCharactersByMovieTitle("The Lion King")
+	assert.NoError(t, err)
 	assert.Len(t, chars, 1)
 	assert.Equal(t, "Simba", chars[0].Name)
 
-	none := repo.GetCharactersByMovieTitle("Unknown")
-	assert.Len(t, none, 0)
+	_, err = repo.GetCharactersByMovieTitle("Unknown")
+	assert.Error(t, err)
 }
 
 func TestGetMovieTitlesByCharacterName(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	m1 := repo.CreateMovie("Shrek", 2001)
-	m2 := repo.CreateMovie("Shrek 2", 2004)
-	c := repo.CreateCharacter("Puss in Boots")
+	m1, _ := repo.CreateMovie("Shrek", 2001)
+	m2, _ := repo.CreateMovie("Shrek 2", 2004)
+	c, _ := repo.CreateCharacter("Puss in Boots")
 
 	repo.AddAppearance(m1.ID, c.ID)
 	repo.AddAppearance(m2.ID, c.ID)
 
-	titles := repo.GetMovieTitlesByCharacterName("Puss in Boots")
+	titles, err := repo.GetMovieTitlesByCharacterName("Puss in Boots")
+	assert.NoError(t, err)
 	assert.Len(t, titles, 2)
 	assert.Contains(t, titles, "Shrek")
 	assert.Contains(t, titles, "Shrek 2")
 
-	none := repo.GetMovieTitlesByCharacterName("Scar")
-	assert.Len(t, none, 0)
+	_, err = repo.GetMovieTitlesByCharacterName("Scar")
+	assert.Error(t, err)
 }
 
 func TestListAllMoviesAndCharacters(t *testing.T) {
@@ -102,66 +124,76 @@ func TestListAllMoviesAndCharacters(t *testing.T) {
 	repo.CreateCharacter("Donkey")
 	repo.CreateCharacter("Simba")
 
-	assert.Len(t, repo.DB.Movies, 3)
-	assert.Len(t, repo.DB.Characters, 3)
+	movies, err := repo.ListAllMovies()
+	assert.NoError(t, err)
+	assert.Len(t, movies, 3)
 
-	repo.ListAllMovies()
-	repo.ListAllCharacters()
+	chars, err := repo.ListAllCharacters()
+	assert.NoError(t, err)
+	assert.Len(t, chars, 3)
+
+	memEmpty := db.New()
+	repoEmpty := New(memEmpty)
+
+	_, err = repoEmpty.ListAllMovies()
+	assert.Error(t, err)
+
+	_, err = repoEmpty.ListAllCharacters()
+	assert.Error(t, err)
 }
 
 func TestUpdateCharacter(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	char := repo.CreateCharacter("Donkey")
-	updated := repo.UpdateCharacter(char.ID, "Donkey the Brave")
-
-	assert.True(t, updated)
+	char, _ := repo.CreateCharacter("Donkey")
+	err := repo.UpdateCharacter(char.ID, "Donkey the Brave")
+	assert.NoError(t, err)
 	assert.Equal(t, "Donkey the Brave", repo.DB.Characters[char.ID].Name)
 
-	fakeID := uuid.New()
-	notUpdated := repo.UpdateCharacter(fakeID, "Ghost")
-	assert.False(t, notUpdated)
+	err = repo.UpdateCharacter(uuid.New(), "Ghost")
+	assert.Error(t, err)
+
+	err = repo.UpdateCharacter(char.ID, "")
+	assert.Error(t, err)
 }
 
 func TestDeleteMovie(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	movie := repo.CreateMovie("Shrek Forever After", 2010)
-	char := repo.CreateCharacter("Rumpelstiltskin")
+	movie, _ := repo.CreateMovie("Shrek Forever After", 2010)
+	char, _ := repo.CreateCharacter("Rumpelstiltskin")
 	repo.AddAppearance(movie.ID, char.ID)
 
-	deleted := repo.DeleteMovie(movie.ID)
-	assert.True(t, deleted)
+	err := repo.DeleteMovie(movie.ID)
+	assert.NoError(t, err)
 	assert.NotContains(t, repo.DB.Movies, movie.ID)
 
 	for _, a := range repo.DB.Appearances {
 		assert.NotEqual(t, a.MovieID, movie.ID)
 	}
 
-	fakeID := uuid.New()
-	notDeleted := repo.DeleteMovie(fakeID)
-	assert.False(t, notDeleted)
+	err = repo.DeleteMovie(uuid.New())
+	assert.Error(t, err)
 }
 
 func TestDeleteCharacter(t *testing.T) {
 	mem := db.New()
 	repo := New(mem)
 
-	movie := repo.CreateMovie("The Lion King", 1994)
-	char := repo.CreateCharacter("Scar")
+	movie, _ := repo.CreateMovie("The Lion King", 1994)
+	char, _ := repo.CreateCharacter("Scar")
 	repo.AddAppearance(movie.ID, char.ID)
 
-	deleted := repo.DeleteCharacter(char.ID)
-	assert.True(t, deleted)
+	err := repo.DeleteCharacter(char.ID)
+	assert.NoError(t, err)
 	assert.NotContains(t, repo.DB.Characters, char.ID)
 
 	for _, a := range repo.DB.Appearances {
 		assert.NotEqual(t, a.CharacterID, char.ID)
 	}
 
-	fakeID := uuid.New()
-	notDeleted := repo.DeleteCharacter(fakeID)
-	assert.False(t, notDeleted)
+	err = repo.DeleteCharacter(uuid.New())
+	assert.Error(t, err)
 }
