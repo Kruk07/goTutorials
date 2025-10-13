@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"example.com/go_basics/go/api"
 	"example.com/go_basics/go/repository"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -16,25 +17,20 @@ func New(repo *repository.Repository) *Handlers {
 	return &Handlers{Repo: repo}
 }
 
-func (h *Handlers) CreateMovie(c echo.Context) error {
-	var input struct {
-		Title string `json:"title"`
-		Year  int    `json:"year"`
-	}
+func (h *Handlers) PostMovies(c echo.Context) error {
+	var input api.Movie
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	movie, err := h.Repo.CreateMovie(input.Title, input.Year)
+	movie, err := h.Repo.CreateMovie(input.Title, input.ReleaseYear)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
 	return c.JSON(http.StatusCreated, movie)
 }
 
-func (h *Handlers) CreateCharacter(c echo.Context) error {
-	var input struct {
-		Name string `json:"name"`
-	}
+func (h *Handlers) PostCharacters(c echo.Context) error {
+	var input api.Character
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
@@ -45,21 +41,26 @@ func (h *Handlers) CreateCharacter(c echo.Context) error {
 	return c.JSON(http.StatusCreated, char)
 }
 
-func (h *Handlers) AddAppearance(c echo.Context) error {
-	var input struct {
-		MovieID     uuid.UUID `json:"movie_id"`
-		CharacterID uuid.UUID `json:"character_id"`
-	}
+func (h *Handlers) PostAppearances(c echo.Context) error {
+	var input api.Appearance
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := h.Repo.AddAppearance(input.MovieID, input.CharacterID); err != nil {
+	movieID, err := uuid.Parse(input.MovieId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid movie_id"})
+	}
+	charID, err := uuid.Parse(input.CharacterId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid character_id"})
+	}
+	if err := h.Repo.AddAppearance(movieID, charID); err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handlers) ListAllMovies(c echo.Context) error {
+func (h *Handlers) GetMovies(c echo.Context) error {
 	movies, err := h.Repo.ListAllMovies()
 	if err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
@@ -67,7 +68,7 @@ func (h *Handlers) ListAllMovies(c echo.Context) error {
 	return c.JSON(http.StatusOK, movies)
 }
 
-func (h *Handlers) ListAllCharacters(c echo.Context) error {
+func (h *Handlers) GetCharacters(c echo.Context) error {
 	chars, err := h.Repo.ListAllCharacters()
 	if err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
@@ -75,50 +76,50 @@ func (h *Handlers) ListAllCharacters(c echo.Context) error {
 	return c.JSON(http.StatusOK, chars)
 }
 
-func (h *Handlers) GetCharactersByMovieTitle(c echo.Context) error {
-	title := c.QueryParam("title")
-	if title == "" {
+func (h *Handlers) GetCharactersByMovie(c echo.Context, params api.GetCharactersByMovieParams) error {
+	if params.Title == "" {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing title"})
 	}
-	chars, err := h.Repo.GetCharactersByMovieTitle(title)
+	chars, err := h.Repo.GetCharactersByMovieTitle(params.Title)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, chars)
 }
 
-func (h *Handlers) GetMovieTitlesByCharacterName(c echo.Context) error {
-	name := c.QueryParam("name")
-	if name == "" {
+func (h *Handlers) GetMoviesByCharacter(c echo.Context, params api.GetMoviesByCharacterParams) error {
+	if params.Name == "" {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing name"})
 	}
-	titles, err := h.Repo.GetMovieTitlesByCharacterName(name)
+	titles, err := h.Repo.GetMovieTitlesByCharacterName(params.Name)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, titles)
 }
 
-func (h *Handlers) UpdateCharacter(c echo.Context) error {
-	var input struct {
-		ID   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
-	}
+func (h *Handlers) PutCharacters(c echo.Context) error {
+	var input api.Character
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := h.Repo.UpdateCharacter(input.ID, input.Name); err != nil {
-		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
-	}
-	return c.NoContent(http.StatusNoContent)
-}
-
-func (h *Handlers) DeleteMovie(c echo.Context) error {
+	// Zakładam, że ID jest przekazywane jako query param
 	idStr := c.QueryParam("id")
 	if idStr == "" {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing id"})
 	}
 	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
+	}
+	if err := h.Repo.UpdateCharacter(id, input.Name); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *Handlers) DeleteMovies(c echo.Context, params api.DeleteMoviesParams) error {
+	id, err := uuid.Parse(params.Id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
 	}
@@ -128,16 +129,12 @@ func (h *Handlers) DeleteMovie(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handlers) DeleteCharacter(c echo.Context) error {
-	idStr := c.QueryParam("id")
-	if idStr == "" {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing id"})
-	}
-	id, err := uuid.Parse(idStr)
+func (h *Handlers) DeleteCharactersId(c echo.Context, id string) error {
+	uid, err := uuid.Parse(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
 	}
-	if err := h.Repo.DeleteCharacter(id); err != nil {
+	if err := h.Repo.DeleteCharacter(uid); err != nil {
 		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
 	return c.NoContent(http.StatusNoContent)

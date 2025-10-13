@@ -1,30 +1,25 @@
 package routes
 
 import (
-	"example.com/go_basics/go/handlers"
+	"log"
+
+	"example.com/go_basics/go/api"      // wygenerowany kod z openapi.yaml
+	"example.com/go_basics/go/handlers" // Twoje handlery
+
 	"github.com/labstack/echo/v4"
 )
 
 func NewEchoRouter(h *handlers.Handlers) *echo.Echo {
 	e := echo.New()
 
-	// Movies
-	e.GET("/movies", h.ListAllMovies)
-	e.POST("/movies", h.CreateMovie)
-	e.DELETE("/movies", h.DeleteMovie)
+	// Załaduj specyfikację OpenAPI
+	_, err := api.GetSwagger()
+	if err != nil {
+		log.Fatalf("Failed to load OpenAPI spec: %v", err)
+	}
 
-	// Characters
-	e.GET("/characters", h.ListAllCharacters)
-	e.POST("/characters", h.CreateCharacter)
-	e.PUT("/characters", h.UpdateCharacter)
-	e.DELETE("/characters", h.DeleteCharacter)
-
-	// Appearances
-	e.POST("/appearances", h.AddAppearance)
-
-	// Queries
-	e.GET("/characters/by-movie", h.GetCharactersByMovieTitle)
-	e.GET("/movies/by-character", h.GetMovieTitlesByCharacterName)
+	// Rejestracja handlerów zgodnych z interfejsem ServerInterface
+	api.RegisterHandlers(e, h)
 
 	return e
 }

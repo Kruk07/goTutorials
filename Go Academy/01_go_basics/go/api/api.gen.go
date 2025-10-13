@@ -36,11 +36,6 @@ type Movie struct {
 	Title       string `json:"title"`
 }
 
-// DeleteCharactersParams defines parameters for DeleteCharacters.
-type DeleteCharactersParams struct {
-	Id string `form:"id" json:"id"`
-}
-
 // GetCharactersByMovieParams defines parameters for GetCharactersByMovie.
 type GetCharactersByMovieParams struct {
 	Title string `form:"title" json:"title"`
@@ -73,9 +68,6 @@ type ServerInterface interface {
 	// Add a character appearance in a movie
 	// (POST /appearances)
 	PostAppearances(ctx echo.Context) error
-	// Delete a character
-	// (DELETE /characters)
-	DeleteCharacters(ctx echo.Context, params DeleteCharactersParams) error
 	// List all characters
 	// (GET /characters)
 	GetCharacters(ctx echo.Context) error
@@ -88,6 +80,9 @@ type ServerInterface interface {
 	// Get characters by movie title
 	// (GET /characters/by-movie)
 	GetCharactersByMovie(ctx echo.Context, params GetCharactersByMovieParams) error
+	// Delete a character
+	// (DELETE /characters/{id})
+	DeleteCharactersId(ctx echo.Context, id string) error
 	// Delete a movie
 	// (DELETE /movies)
 	DeleteMovies(ctx echo.Context, params DeleteMoviesParams) error
@@ -113,24 +108,6 @@ func (w *ServerInterfaceWrapper) PostAppearances(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostAppearances(ctx)
-	return err
-}
-
-// DeleteCharacters converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteCharacters(ctx echo.Context) error {
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params DeleteCharactersParams
-	// ------------- Required query parameter "id" -------------
-
-	err = runtime.BindQueryParameter("form", true, true, "id", ctx.QueryParams(), &params.Id)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.DeleteCharacters(ctx, params)
 	return err
 }
 
@@ -176,6 +153,22 @@ func (w *ServerInterfaceWrapper) GetCharactersByMovie(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetCharactersByMovie(ctx, params)
+	return err
+}
+
+// DeleteCharactersId converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteCharactersId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, ctx.Param("id"), &id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteCharactersId(ctx, id)
 	return err
 }
 
@@ -262,11 +255,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.POST(baseURL+"/appearances", wrapper.PostAppearances)
-	router.DELETE(baseURL+"/characters", wrapper.DeleteCharacters)
 	router.GET(baseURL+"/characters", wrapper.GetCharacters)
 	router.POST(baseURL+"/characters", wrapper.PostCharacters)
 	router.PUT(baseURL+"/characters", wrapper.PutCharacters)
 	router.GET(baseURL+"/characters/by-movie", wrapper.GetCharactersByMovie)
+	router.DELETE(baseURL+"/characters/:id", wrapper.DeleteCharactersId)
 	router.DELETE(baseURL+"/movies", wrapper.DeleteMovies)
 	router.GET(baseURL+"/movies", wrapper.GetMovies)
 	router.POST(baseURL+"/movies", wrapper.PostMovies)
@@ -277,17 +270,17 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xWUW+bPBT9K9b9vkcW6Lon3tpMqiotUl/2VFWVg28SV2C7tumEIv77ZDsJJlCSRZG2",
-	"p4C51z7ncO4hWyhkpaRAYQ3kWzDFBivqL++UQqqpKNDdKS0VasvRPys2VNPCon7lzN3bRiHkYKzmYg1t",
-	"ApX84Dj+sE1A43vNNTLIn/tbRY0vyb5RLt+wsG7X+b52iIihKTRXlksxCkjQCk+D8VVjJy8crOGpGkuk",
-	"Bl8bpDranQuLa9Su0XJbnnFwKEv6Gw6BuDYuVtJvGHYO0MhBGnL39AgJfKA2Xgu4mWWzzEGRCgVVHHK4",
-	"nWWzW0hAUbvxPFJ6eNn+Xklj3a/jSp2mjwxyeJLG3kWFgQIaey9Z420hhUXhO6lSJS98b/pmwksJ5nJX",
-	"/2tcQQ7/pZ370p310sh3bV8mq2v0C0ZJYQLSr9nN4PVH1iWUMWReblNXFdWNe8wYoeRgPNKRJ1wQSrwH",
-	"fU96KNqZrESLQ2G++/V5V+uk1bTC0Pi8Be5gvdeoG9h7Ebzf++ySSKNjw7wMmH8bMu9sELAeUw9IY/bO",
-	"GWscedsPaHuMjg7PRmQnJTeWyBWJZOuf/8MV0LLsVSQTfjuCcH27dZlyqds6zQuNdKj53K8SSgT+6uuu",
-	"6jHW9T9HOpsiXSs2QvqnX+0brT9Q6bL5Uu1j9bQD75uQwWeNVhenl0/XFGlDNNpaiwHtB7SRtcmyCWFC",
-	"AiCvgF84I04Woe6vRUn4rpyIkV1Ufh4hBxZ/Eh87iT6Jjv3TqdiIjr3+9Cx234fL4iLoekZURJ+hQNlN",
-	"TBH/BZoW/b7pxvwsF/mfqw9NADM1MIGdG5bum+yxtG3b/g4AAP//sc4N2aIKAAA=",
+	"H4sIAAAAAAAC/8xWQW/iPBD9K5a/75gl6XZPubWsVCEtUi97qqrKxAO4SmzXdrqKUP77ymMghoRAu6y0",
+	"JxJ7PPPezMszG1qoSisJ0lmab6gt1lAxfLzTGphhsgD/po3SYJwA3CvWzLDCgXkR3L+7RgPNqXVGyBVt",
+	"E1qpdwHDm21CDbzVwgCn+dNhqujgc7I7qBavUDifdbqL7SPiYAsjtBNKDgKSrILzYDBqqPLcw+pXNVAC",
+	"s/DSADNRdiEdrMD4g0648oLCISw5TNgH4o8JuVSYMGQO0Mi+NeTucUYT+g7GYi/ozSSbZB6K0iCZFjSn",
+	"t5NscksTqplbI4+U7YeN71pZ5389V+Z7OuM0p4/KursoMFAA6+4Vb1AWSjqQeJJpXYoCz6avNgwliMs/",
+	"/W9gSXP6X9qpL91KL4101x62yZkacMFqJW1A+jW76Y0/ki5hnAPHdtu6qphp/DbnhJG98EhHnghJGEEN",
+	"4pl0H4TFVjDQlQdw0y6qBy8bgEdKYR1RSxKlP4T4wwewsjyISEbmcgTh+mPpvr3PTqWTaGGAud5YprhK",
+	"GJHwq+ONtOsh1vU/RzobI11rPkD6J67GcjwWXrpovlQ7+zmvwPsmeJX/ug2rIGj3aUOFh/NWg2nozg4j",
+	"24mJJVF3jm3r+UOkLTHgaiN7tB/ARdImiyZ8dCQAOu7ARvA2VCnBQb8B33G9qzrjJ+h7w+vY44XzJ9S/",
+	"jc07gD0mHqD254307XmS8xB30XT/Br9w25zhtjXQ5KRc9yw+YpbbFp0wyt3umElGZa/vFfPtrfE5cwx9",
+	"vcAYo8spUPb+UMR/jMabft90pnaRivDn6hYRwIzZQ2DnraG7qRFL27bt7wAAAP//baHtPbgKAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

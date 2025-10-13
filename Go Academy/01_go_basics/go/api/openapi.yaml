@@ -60,11 +60,13 @@ paths:
       responses:
         '200':
           description: Character updated
+
+  /characters/{id}:
     delete:
       summary: Delete a character
       parameters:
         - name: id
-          in: query
+          in: path
           required: true
           schema:
             type: string
