@@ -1,45 +1,30 @@
 package routes
 
 import (
-	"net/http"
-
 	"example.com/go_basics/go/handlers"
+	"github.com/labstack/echo/v4"
 )
 
-func NewServeMux(h *handlers.Handlers) *http.ServeMux {
-	mux := http.NewServeMux()
+func NewEchoRouter(h *handlers.Handlers) *echo.Echo {
+	e := echo.New()
 
-	mux.HandleFunc("/movies", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			h.CreateMovie(w, r)
-		case http.MethodGet:
-			h.ListAllMovies(w, r)
-		case http.MethodDelete:
-			h.DeleteMovie(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	// Movies
+	e.GET("/movies", h.ListAllMovies)
+	e.POST("/movies", h.CreateMovie)
+	e.DELETE("/movies", h.DeleteMovie)
 
-	mux.HandleFunc("/characters", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			h.CreateCharacter(w, r)
-		case http.MethodGet:
-			h.ListAllCharacters(w, r)
-		case http.MethodPut:
-			h.UpdateCharacter(w, r)
-		case http.MethodDelete:
-			h.DeleteCharacter(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	// Characters
+	e.GET("/characters", h.ListAllCharacters)
+	e.POST("/characters", h.CreateCharacter)
+	e.PUT("/characters", h.UpdateCharacter)
+	e.DELETE("/characters", h.DeleteCharacter)
 
-	mux.HandleFunc("/appearances", h.AddAppearance)
-	mux.HandleFunc("/characters/by-movie", h.GetCharactersByMovieTitle)
-	mux.HandleFunc("/movies/by-character", h.GetMovieTitlesByCharacterName)
+	// Appearances
+	e.POST("/appearances", h.AddAppearance)
 
-	return mux
+	// Queries
+	e.GET("/characters/by-movie", h.GetCharactersByMovieTitle)
+	e.GET("/movies/by-character", h.GetMovieTitlesByCharacterName)
+
+	return e
 }

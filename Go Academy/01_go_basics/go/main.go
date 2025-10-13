@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 
 	"go.uber.org/fx"
@@ -13,6 +12,8 @@ import (
 	"example.com/go_basics/go/repository"
 	"example.com/go_basics/go/routes"
 	"example.com/go_basics/go/testdata"
+
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
@@ -21,31 +22,33 @@ func main() {
 			db.New,
 			repository.New,
 			handlers.New,
-			routes.NewServeMux,
+			routes.NewEchoRouter,
 		),
 		fx.Invoke(
-			NewHTTPServer,
+			StartEchoServer,
 			testdata.LoadTestData,
 		),
 	)
 	app.Run()
 }
 
-func NewHTTPServer(lc fx.Lifecycle, mux *http.ServeMux) *http.Server {
-	srv := &http.Server{Addr: ":8080", Handler: mux}
+func StartEchoServer(lc fx.Lifecycle, e *echo.Echo) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			ln, err := net.Listen("tcp", srv.Addr)
-			if err != nil {
-				return err
+			server := &http.Server{
+				Addr:    ":8080",
+				Handler: e,
 			}
-			fmt.Println("Starting HTTP server at", srv.Addr)
-			go srv.Serve(ln)
+			fmt.Println("Starting Echo server at :8080")
+			go func() {
+				if err := e.StartServer(server); err != nil && err != http.ErrServerClosed {
+					e.Logger.Error("Echo server stopped with error:", err)
+				}
+			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			return srv.Shutdown(ctx)
+			return e.Shutdown(ctx)
 		},
 	})
-	return srv
 }
