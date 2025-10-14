@@ -4,15 +4,8 @@ import "github.com/google/uuid"
 
 type Character struct {
 	ID   uuid.UUID
-	Name string
+	Name string `json:"name" validate:"required"`
 }
-
-// func NewCharacter(name string) Character {
-// 	return Character{
-// 		ID:   uuid.New(),
-// 		Name: name,
-// 	}
-// }
 
 func NewCharacter(options ...func(*Character)) Character {
 	char := Character{

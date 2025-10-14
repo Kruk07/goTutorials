@@ -5,22 +5,30 @@ import (
 
 	"example.com/go_basics/go/api"
 	"example.com/go_basics/go/repository"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 type Handlers struct {
-	Repo *repository.Repository
+	Repo      *repository.Repository
+	Validator *validator.Validate
 }
 
 func New(repo *repository.Repository) *Handlers {
-	return &Handlers{Repo: repo}
+	return &Handlers{
+		Repo:      repo,
+		Validator: validator.New(),
+	}
 }
 
 func (h *Handlers) PostMovies(c echo.Context) error {
 	var input api.Movie
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
 	movie, err := h.Repo.CreateMovie(input.Title, input.ReleaseYear)
 	if err != nil {
@@ -34,6 +42,9 @@ func (h *Handlers) PostCharacters(c echo.Context) error {
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
+	}
 	char, err := h.Repo.CreateCharacter(input.Name)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
@@ -45,6 +56,9 @@ func (h *Handlers) PostAppearances(c echo.Context) error {
 	var input api.Appearance
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
+	}
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
 	movieID, err := uuid.Parse(input.MovieId)
 	if err != nil {
@@ -103,7 +117,9 @@ func (h *Handlers) PutCharacters(c echo.Context) error {
 	if err := c.Bind(&input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	// Zakładam, że ID jest przekazywane jako query param
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
+	}
 	idStr := c.QueryParam("id")
 	if idStr == "" {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing id"})

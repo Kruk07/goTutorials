@@ -4,17 +4,9 @@ import "github.com/google/uuid"
 
 type Movie struct {
 	ID    uuid.UUID
-	Title string
-	Year  int
+	Title string `json:"title" validate:"required"`
+	Year  int `json:"year" validate:"required,min=1900"`
 }
-
-// func NewMovie(title string, year int) Movie {
-// 	return Movie{
-// 		ID:    uuid.New(),
-// 		Title: title,
-// 		Year:  year,
-// 	}
-// }
 
 func NewMovie(options ...func(*Movie)) Movie {
 	mov := Movie{
