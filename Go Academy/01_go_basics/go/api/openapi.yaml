@@ -131,6 +131,8 @@ components:
           type: string
         description:
           type: string
+        movie:
+          type: string
     Appearance:
       type: object
       required: [character_id, movie_id]

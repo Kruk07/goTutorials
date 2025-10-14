@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"example.com/go_basics/go/api"
 	"example.com/go_basics/go/repository"
+	"example.com/go_basics/go/swapi"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -13,12 +15,14 @@ import (
 type Handlers struct {
 	Repo      *repository.Repository
 	Validator *validator.Validate
+	SWAPI     *swapi.Client
 }
 
 func New(repo *repository.Repository) *Handlers {
 	return &Handlers{
 		Repo:      repo,
 		Validator: validator.New(),
+		SWAPI:     swapi.New(),
 	}
 }
 
@@ -45,6 +49,19 @@ func (h *Handlers) PostCharacters(c echo.Context) error {
 	if err := h.Validator.Struct(input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
+
+	log.Printf("Movie added: %s", input.Movie)
+
+	if input.Movie != nil && *input.Movie == "Star Wars" {
+		exists, err := h.SWAPI.CharacterExists(input.Name)
+		if err != nil {
+			return c.JSON(http.StatusBadGateway, echo.Map{"error": "SWAPI lookup failed", "details": err.Error()})
+		}
+		if !exists {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Character not found in Star Wars universe"})
+		}
+	}
+
 	char, err := h.Repo.CreateCharacter(input.Name)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
