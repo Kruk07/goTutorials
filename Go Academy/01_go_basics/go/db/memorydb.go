@@ -1,20 +1,20 @@
 package db
 
 import (
+	"sync"
+
 	"example.com/go_basics/go/entity"
-	"github.com/google/uuid"
 )
 
 type MemoryDB struct {
-	Movies      map[uuid.UUID]entity.Movie
-	Characters  map[uuid.UUID]entity.Character
+	Movies      sync.Map
+	Characters  sync.Map
 	Appearances []entity.Appearance
+	Mutex       sync.Mutex
 }
 
 func New() *MemoryDB {
 	return &MemoryDB{
-		Movies:      make(map[uuid.UUID]entity.Movie, 3),
-		Characters:  make(map[uuid.UUID]entity.Character, 3),
-		Appearances: []entity.Appearance{},
+		Appearances: make([]entity.Appearance, 0),
 	}
 }
