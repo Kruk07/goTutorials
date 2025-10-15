@@ -1,164 +1,174 @@
 package handlers
 
 import (
-	"encoding/json"
+	"log"
 	"net/http"
 
+	"example.com/go_basics/go/api"
 	"example.com/go_basics/go/repository"
+	"example.com/go_basics/go/swapi"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 )
 
 type Handlers struct {
-	Repo *repository.Repository
+	Repo      *repository.Repository
+	Validator *validator.Validate
+	SWAPI     *swapi.Client
 }
 
 func New(repo *repository.Repository) *Handlers {
-	return &Handlers{Repo: repo}
+	return &Handlers{
+		Repo:      repo,
+		Validator: validator.New(),
+		SWAPI:     swapi.New(),
+	}
 }
 
-func (h *Handlers) CreateMovie(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Title string `json:"title"`
-		Year  int    `json:"year"`
+func (h *Handlers) PostMovies(c echo.Context) error {
+	var input api.Movie
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
-	movie, err := h.Repo.CreateMovie(input.Title, input.Year)
+	movie, err := h.Repo.CreateMovie(input.Title, input.ReleaseYear)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(movie)
+	return c.JSON(http.StatusCreated, movie)
 }
 
-func (h *Handlers) CreateCharacter(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		Name string `json:"name"`
+func (h *Handlers) PostCharacters(c echo.Context) error {
+	var input api.Character
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
+
+	log.Printf("Movie added: %s", input.Movie)
+
+	if input.Movie != nil && *input.Movie == "Star Wars" {
+		exists, err := h.SWAPI.CharacterExists(input.Name)
+		if err != nil {
+			return c.JSON(http.StatusBadGateway, echo.Map{"error": "SWAPI lookup failed", "details": err.Error()})
+		}
+		if !exists {
+			return c.JSON(http.StatusBadRequest, echo.Map{"error": "Character not found in Star Wars universe"})
+		}
+	}
+
 	char, err := h.Repo.CreateCharacter(input.Name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(char)
+	return c.JSON(http.StatusCreated, char)
 }
 
-func (h *Handlers) AddAppearance(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		MovieID     uuid.UUID `json:"movie_id"`
-		CharacterID uuid.UUID `json:"character_id"`
+func (h *Handlers) PostAppearances(c echo.Context) error {
+	var input api.Appearance
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
-	if err := h.Repo.AddAppearance(input.MovieID, input.CharacterID); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+	movieID, err := uuid.Parse(input.MovieId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid movie_id"})
 	}
-	w.WriteHeader(http.StatusNoContent)
+	charID, err := uuid.Parse(input.CharacterId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid character_id"})
+	}
+	if err := h.Repo.AddAppearance(movieID, charID); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
+	}
+	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handlers) ListAllMovies(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetMovies(c echo.Context) error {
 	movies, err := h.Repo.ListAllMovies()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(movies)
+	return c.JSON(http.StatusOK, movies)
 }
 
-func (h *Handlers) ListAllCharacters(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetCharacters(c echo.Context) error {
 	chars, err := h.Repo.ListAllCharacters()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(chars)
+	return c.JSON(http.StatusOK, chars)
 }
 
-func (h *Handlers) GetCharactersByMovieTitle(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Query().Get("title")
-	if title == "" {
-		http.Error(w, "Missing title", http.StatusBadRequest)
-		return
+func (h *Handlers) GetCharactersByMovie(c echo.Context, params api.GetCharactersByMovieParams) error {
+	if params.Title == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing title"})
 	}
-	chars, err := h.Repo.GetCharactersByMovieTitle(title)
+	chars, err := h.Repo.GetCharactersByMovieTitle(params.Title)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(chars)
+	return c.JSON(http.StatusOK, chars)
 }
 
-func (h *Handlers) GetMovieTitlesByCharacterName(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "Missing name", http.StatusBadRequest)
-		return
+func (h *Handlers) GetMoviesByCharacter(c echo.Context, params api.GetMoviesByCharacterParams) error {
+	if params.Name == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing name"})
 	}
-	titles, err := h.Repo.GetMovieTitlesByCharacterName(name)
+	titles, err := h.Repo.GetMovieTitlesByCharacterName(params.Name)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	json.NewEncoder(w).Encode(titles)
+	return c.JSON(http.StatusOK, titles)
 }
 
-func (h *Handlers) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
-	var input struct {
-		ID   uuid.UUID `json:"id"`
-		Name string    `json:"name"`
+func (h *Handlers) PutCharacters(c echo.Context) error {
+	var input api.Character
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid input"})
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
+	if err := h.Validator.Struct(input); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
-	if err := h.Repo.UpdateCharacter(input.ID, input.Name); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handlers) DeleteMovie(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+	idStr := c.QueryParam("id")
 	if idStr == "" {
-		http.Error(w, "Missing id", http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Missing id"})
 	}
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		http.Error(w, "Invalid UUID format", http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
+	}
+	if err := h.Repo.UpdateCharacter(id, input.Name); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *Handlers) DeleteMovies(c echo.Context, params api.DeleteMoviesParams) error {
+	id, err := uuid.Parse(params.Id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
 	}
 	if err := h.Repo.DeleteMovie(id); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handlers) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	if idStr == "" {
-		http.Error(w, "Missing id", http.StatusBadRequest)
-		return
-	}
-	id, err := uuid.Parse(idStr)
+func (h *Handlers) DeleteCharactersId(c echo.Context, id string) error {
+	uid, err := uuid.Parse(id)
 	if err != nil {
-		http.Error(w, "Invalid UUID format", http.StatusBadRequest)
-		return
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid UUID format"})
 	}
-	if err := h.Repo.DeleteCharacter(id); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+	if err := h.Repo.DeleteCharacter(uid); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": err.Error()})
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }

@@ -3,16 +3,9 @@ package entity
 import "github.com/google/uuid"
 
 type Appearance struct {
-	MovieID     uuid.UUID
-	CharacterID uuid.UUID
+	MovieID     uuid.UUID `json:"movie_id" validate:"required,uuid"`
+	CharacterID uuid.UUID `json:"character_id" validate:"required,uuid"`
 }
-
-// func New(movieID, characterID uuid.UUID) Appearance {
-// 	return Appearance{
-// 		MovieID:     movieID,
-// 		CharacterID: characterID,
-// 	}
-// }
 
 func New(options ...func(*Appearance)) Appearance {
 	app := Appearance{}

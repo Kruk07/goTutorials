@@ -1,45 +1,25 @@
 package routes
 
 import (
-	"net/http"
+	"log"
 
-	"example.com/go_basics/go/handlers"
+	"example.com/go_basics/go/api"      // wygenerowany kod z openapi.yaml
+	"example.com/go_basics/go/handlers" // Twoje handlery
+
+	"github.com/labstack/echo/v4"
 )
 
-func NewServeMux(h *handlers.Handlers) *http.ServeMux {
-	mux := http.NewServeMux()
+func NewEchoRouter(h *handlers.Handlers) *echo.Echo {
+	e := echo.New()
 
-	mux.HandleFunc("/movies", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			h.CreateMovie(w, r)
-		case http.MethodGet:
-			h.ListAllMovies(w, r)
-		case http.MethodDelete:
-			h.DeleteMovie(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	// Załaduj specyfikację OpenAPI
+	_, err := api.GetSwagger()
+	if err != nil {
+		log.Fatalf("Failed to load OpenAPI spec: %v", err)
+	}
 
-	mux.HandleFunc("/characters", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			h.CreateCharacter(w, r)
-		case http.MethodGet:
-			h.ListAllCharacters(w, r)
-		case http.MethodPut:
-			h.UpdateCharacter(w, r)
-		case http.MethodDelete:
-			h.DeleteCharacter(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	// Rejestracja handlerów zgodnych z interfejsem ServerInterface
+	api.RegisterHandlers(e, h)
 
-	mux.HandleFunc("/appearances", h.AddAppearance)
-	mux.HandleFunc("/characters/by-movie", h.GetCharactersByMovieTitle)
-	mux.HandleFunc("/movies/by-character", h.GetMovieTitlesByCharacterName)
-
-	return mux
+	return e
 }
