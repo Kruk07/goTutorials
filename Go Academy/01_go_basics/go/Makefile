@@ -32,3 +32,28 @@ test-all: test-get test-post
 .PHONY: test
 test:
 	$(K6) run $(K6_FOLDER)/$(FILE)
+
+# Cert paths
+CERT_FOLDER := certs
+CA_CERT := $(CERT_FOLDER)/ca.pem
+MOVIE_CERT_FOLDER := $(CERT_FOLDER)/movies
+CHARACTER_CERT_FOLDER := $(CERT_FOLDER)/characters
+
+# Go CLI entrypoint
+CERT_GEN := go run cert/generator.go
+
+.PHONY: create-ca
+create-ca:
+	$(CERT_GEN) -mode=ca -out=$(CA_CERT)
+
+.PHONY: create-movie
+create-movie:
+	$(CERT_GEN) -mode=movie -name=$(NAME) -ca=$(CA_CERT) -out=$(MOVIE_CERT_FOLDER)/$(NAME).pem
+
+.PHONY: create-character
+create-character:
+	$(CERT_GEN) -mode=character -name=$(NAME) -movie=$(MOVIE_CERT_FOLDER)/$(MOVIE) -out=$(CHARACTER_CERT_FOLDER)/$(NAME).pem
+
+.PHONY: docker-run
+docker-run:
+	docker run -p $(PORT):$(PORT) --env CA_CERT_PATH=/certs/ca.pem -v $(PWD)/certs:/certs $(APP_NAME):latest
