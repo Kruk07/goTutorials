@@ -112,6 +112,18 @@ paths:
       responses:
         '200':
           description: Movies returned
+  /certificates:
+    get:
+      summary: List all certificates
+      responses:
+        '200':
+          description: A list of certificates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Certificate'
 
 components:
   schemas:
@@ -141,3 +153,19 @@ components:
           type: string
         movie_id:
           type: string
+    Certificate:
+      type: object
+      required: [id, type, issued_to, issued_by, issued_at]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [CA, Movie, Character]
+        issued_to:
+          type: string
+        issued_by:
+          type: string
+        issued_at:
+          type: string
+          format: date-time
