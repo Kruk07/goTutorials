@@ -1,0 +1,7 @@
+POST http://localhost:8080/appearances
+Content-Type: application/json
+
+{
+  "character_id": "36ebf0bc-db73-4790-ae92-8877f81447a6",
+  "movie_id": "3ef8e021-11a5-47db-97f1-931e88dbe475"
+}

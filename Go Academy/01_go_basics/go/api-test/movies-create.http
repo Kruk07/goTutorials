@@ -3,5 +3,5 @@ Content-Type: application/json
 
 {
   "title": "Shrek Forever After",
-  "year": 2010
+  "release_year": 2010
 }

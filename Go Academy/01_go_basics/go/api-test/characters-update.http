@@ -1,0 +1,6 @@
+PUT http://localhost:8080/characters?id=a493e665-fce8-408a-949a-4fc6e74b04b6
+Content-Type: application/json
+
+{
+  "name": "Donkey the Brave"
+}

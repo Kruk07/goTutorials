@@ -11,5 +11,3 @@ WORKDIR /app/go
 RUN go build -o /app/main .
 
 EXPOSE 8080
-
-CMD ["/app/main"]
