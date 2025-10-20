@@ -54,6 +54,13 @@ create-movie:
 create-character:
 	$(CERT_GEN) -mode=character -name=$(NAME) -movie=$(MOVIE_CERT_FOLDER)/$(MOVIE) -out=$(CHARACTER_CERT_FOLDER)/$(NAME).pem
 
+PORT ?= 8080
+APP_NAME ?= movie-character-api
+
+.PHONY: docker-build
+docker-build:
+	docker build -f ../Dockerfile -t $(APP_NAME):latest ..
+
 .PHONY: docker-run
 docker-run:
-	docker run -p $(PORT):$(PORT) --env CA_CERT_PATH=/certs/ca.pem -v $(PWD)/certs:/certs $(APP_NAME):latest
+	docker run -p $(PORT):$(PORT) $(APP_NAME):latest
