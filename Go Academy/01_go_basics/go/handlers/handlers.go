@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"example.com/go_basics/go/api"
@@ -49,8 +48,6 @@ func (h *Handlers) PostCharacters(c echo.Context) error {
 	if err := h.Validator.Struct(input); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation failed", "details": err.Error()})
 	}
-
-	log.Printf("Movie added: %s", input.Movie)
 
 	if input.Movie != nil && *input.Movie == "Star Wars" {
 		exists, err := h.SWAPI.CharacterExists(input.Name)

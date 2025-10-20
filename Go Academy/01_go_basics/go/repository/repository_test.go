@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"example.com/go_basics/go/db"
+	"example.com/go_basics/go/entity"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -149,7 +150,13 @@ func TestUpdateCharacter(t *testing.T) {
 	char, _ := repo.CreateCharacter("Donkey")
 	err := repo.UpdateCharacter(char.ID, "Donkey the Brave")
 	assert.NoError(t, err)
-	assert.Equal(t, "Donkey the Brave", repo.DB.Characters[char.ID].Name)
+
+	val, ok := repo.DB.Characters.Load(char.ID)
+	assert.True(t, ok)
+
+	updatedChar, ok := val.(entity.Character)
+	assert.True(t, ok)
+	assert.Equal(t, "Donkey the Brave", updatedChar.Name)
 
 	err = repo.UpdateCharacter(uuid.New(), "Ghost")
 	assert.Error(t, err)
@@ -168,7 +175,8 @@ func TestDeleteMovie(t *testing.T) {
 
 	err := repo.DeleteMovie(movie.ID)
 	assert.NoError(t, err)
-	assert.NotContains(t, repo.DB.Movies, movie.ID)
+	_, ok := repo.DB.Movies.Load(movie.ID)
+	assert.False(t, ok)
 
 	for _, a := range repo.DB.Appearances {
 		assert.NotEqual(t, a.MovieID, movie.ID)
@@ -188,7 +196,8 @@ func TestDeleteCharacter(t *testing.T) {
 
 	err := repo.DeleteCharacter(char.ID)
 	assert.NoError(t, err)
-	assert.NotContains(t, repo.DB.Characters, char.ID)
+	_, ok := repo.DB.Characters.Load(char.ID)
+	assert.False(t, ok)
 
 	for _, a := range repo.DB.Appearances {
 		assert.NotEqual(t, a.CharacterID, char.ID)
